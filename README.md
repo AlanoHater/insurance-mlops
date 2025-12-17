@@ -40,7 +40,7 @@ rm -f latest_run_id.txt mlflow.db
 rm -rf mlruns
 ```
 
-###3. Ejecutar el Pipeline de CI/CD (Entrenamiento y Empaquetado)
+### 3. Ejecutar el Pipeline de CI/CD (Entrenamiento y Empaquetado)
 Cualquier cambio empujado a la rama main dispara automáticamente el proceso de entrenamiento y despliegue:
 
 Haz un cambio en el código (ej. ajusta un parámetro en src/training/train.py).
@@ -64,8 +64,9 @@ Inyección del nuevo RUN_ID en src/app/main.py.
 Construcción de la imagen Docker.
 
 Subida de la imagen (:latest y :hash) a ECR.
+---
 
-###4. Prueba Local del Artefacto de Producción
+### 4. Prueba Local del Artefacto de Producción
 Una vez que GitHub Actions esté en ✅ verde, puedes probar la imagen de ECR en tu máquina:
 
 A. Autenticar Docker
@@ -108,7 +109,7 @@ curl -X 'POST' \
   "DaysSinceCreated": 217
 }'
 ```
-#🧹 Limpieza de Entorno Local 
+# 🧹 Limpieza de Entorno Local 
 Para liberar los recursos de tu pc (sin borrar los recursos de AWS):
 
 ```bash
