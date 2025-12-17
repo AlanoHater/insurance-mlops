@@ -1,0 +1,6 @@
+outs:
+- md5: 298be2561324726e80d56c2d241feba3
+  size: 6141
+  isexec: true
+  hash: md5
+  path: production.csv
