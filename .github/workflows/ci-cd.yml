@@ -36,11 +36,16 @@ jobs:
         pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: 🤖 Entrenar Nuevo Modelo
-      run: |
-        export PYTHONPATH=$PYTHONPATH:.
-        # Ahora sí funcionará porque tiene boto3 instalado Y credenciales de AWS activas
-        python src/training/train.py
+        - name: 🤖 Entrenar Nuevo Modelo
+        run: |
+          # --- LIMPIEZA CRÍTICA ---
+          # Borramos la DB y carpetas viejas para evitar conflictos de rutas (/workspaces vs /home/runner)
+          rm -f mlflow.db
+          rm -rf mlruns
+          
+          # Configuración normal
+          export PYTHONPATH=$PYTHONPATH:.
+          python src/training/train.py
 
     - name: 🔄 Actualizar ID del Modelo en la API
       run: |
