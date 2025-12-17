@@ -12,7 +12,8 @@ mlflow.set_tracking_uri("sqlite:///mlflow.db")
 mlflow.set_experiment("insurance-cross-selling-prod")
 
 def main():
-    with mlflow.start_run():
+    # ⚠️ CAMBIO IMPORTANTE: agregamos 'as run' para capturar el objeto
+    with mlflow.start_run() as run:
         print("🚀 [1/5] Iniciando Ingesta y ETL...")
         df = load_data("data/train.csv")
         df = clean_data(df)
@@ -24,12 +25,10 @@ def main():
             raise ValueError(f"CRÍTICO: Columna '{TARGET}' no encontrada.")
 
         # Selección de Features
-        # Eliminamos Gender si decidimos que no aporta, o lo dejamos si el negocio insiste.
-        # Aquí lo dejamos, el modelo aprenderá a ignorarlo si pesa 0.
         X = df.drop(columns=[TARGET], errors='ignore')
         y = df[TARGET]
         
-        # Split Estratificado (Mantiene la proporción de clases)
+        # Split Estratificado
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=0.2, random_state=42, stratify=y
         )
@@ -57,13 +56,11 @@ def main():
         clf.fit(X_train, y_train)
 
         print("🔍 [4/5] Optimizando Umbral (Threshold Tuning)...")
-        # Obtenemos probabilidades brutas (0.0 a 1.0)
         probs = clf.predict_proba(X_test)[:, 1]
         
         best_threshold = 0.5
         best_f1 = 0.0
         
-        # Probamos cortes del 10% al 90%
         thresholds = np.arange(0.1, 0.9, 0.01)
         for thresh in thresholds:
             y_pred_thresh = (probs >= thresh).astype(int)
@@ -75,7 +72,7 @@ def main():
         print(f"   -> MEJOR UMBRAL: {best_threshold:.2f}")
         print(f"   -> MEJOR F1: {best_f1:.4f}")
 
-        # Generar métricas finales con el umbral ganador
+        # Generar métricas finales
         final_preds = (probs >= best_threshold).astype(int)
         acc = accuracy_score(y_test, final_preds)
         auc = roc_auc_score(y_test, probs)
@@ -84,11 +81,20 @@ def main():
         mlflow.log_metric("accuracy", acc)
         mlflow.log_metric("auc", auc)
         mlflow.log_metric("f1_score", best_f1)
-        mlflow.log_param("best_threshold", best_threshold) # ¡Vital para la API!
+        mlflow.log_param("best_threshold", best_threshold)
 
         print("💾 [5/5] Guardando Artefactos...")
-        # Guardamos el modelo
         mlflow.xgboost.log_model(clf, "model", model_format="json")
+        
+        # --- AQUÍ ESTABA EL CAMBIO NECESARIO ---
+        # Capturamos el ID dentro del contexto seguro
+        run_id = run.info.run_id
+        print(f"✅ Modelo entrenado. Run ID: {run_id}")
+        
+        # Guardamos el ID en el archivo para que GitHub Actions lo lea
+        with open("latest_run_id.txt", "w") as f:
+            f.write(run_id)
+        
         print("✅ Pipeline finalizado con éxito.")
 
 if __name__ == "__main__":

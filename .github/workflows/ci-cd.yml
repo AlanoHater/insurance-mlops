@@ -1,0 +1,70 @@
+name: Production Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: insurance-api
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Descargar código
+      uses: actions/checkout@v4
+
+    - name: 🐍 Configurar Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        cache: 'pip'
+
+    - name: 📦 Instalar dependencias
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: 🤖 Entrenar Nuevo Modelo
+      run: |
+        # Esto generará un nuevo mlflow.db y mlruns/ en el servidor de GitHub
+        python src/training/train.py
+
+    - name: 🔄 Actualizar ID del Modelo en la API
+      run: |
+        # Leemos el ID que generó el paso anterior
+        NEW_RUN_ID=$(cat latest_run_id.txt)
+        echo "Inyectando Run ID: $NEW_RUN_ID en main.py"
+        
+        # Usamos sed para reemplazar la línea que define el RUN_ID
+        # Busca 'RUN_ID = "..."' y lo cambia por el nuevo.
+        sed -i "s/RUN_ID = \".*\"/RUN_ID = \"$NEW_RUN_ID\"/" src/app/main.py
+        
+        # Verificar que cambió
+        grep "RUN_ID =" src/app/main.py
+
+    - name: 🔐 Login en AWS ECR
+      uses: aws-actions/amazon-ecr-login@v2
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+
+    - name: 🐳 Construir y Subir Imagen Docker
+      env:
+        REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        # Construimos la imagen incluyendo el NUEVO modelo (mlruns/) y el código actualizado
+        docker build -t $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker tag $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $REGISTRY/$ECR_REPOSITORY:latest
+        
+        # Subimos a AWS
+        docker push $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker push $REGISTRY/$ECR_REPOSITORY:latest
+        
+    - name: ✅ Éxito
+      run: echo "La imagen $IMAGE_TAG ha sido subida a ECR correctamente."
