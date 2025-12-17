@@ -6,3 +6,4 @@ mlflow
 fastapi
 uvicorn
 pydantic
+boto3
