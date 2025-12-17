@@ -1,0 +1,25 @@
+{
+    "name": "MLOps Cross-Selling Dev",
+    "build": {
+      "dockerfile": "Dockerfile",
+      "context": ".."
+    },
+    "customizations": {
+      "vscode": {
+        "settings": {
+          "python.defaultInterpreterPath": "/usr/local/bin/python"
+        },
+        "extensions": [
+          "ms-python.python",
+          "iterative.dvc", 
+          "ms-azuretools.vscode-docker"
+        ]
+      }
+    },
+    "remoteUser": "root",
+    "mounts": [
+      // CRÍTICO: Esto conecta tu carpeta .aws local con el contenedor
+      // Si estás en Windows (Powershell), verifica que %USERPROFILE% sea tu ruta correcta
+      "source=${localEnv:USERPROFILE}/.aws,target=/root/.aws,type=bind,consistency=cached"
+    ]
+  }

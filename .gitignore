@@ -1,0 +1,16 @@
+# Seguridad
+.env
+credentials.csv
+
+# Datos y Modelos (Manejados por DVC)
+data/
+models/
+
+# DVC internos
+.dvc/cache
+.dvc/tmp
+
+# Python/Entorno
+__pycache__/
+venv/
+.pytest_cache/

@@ -1,0 +1,4 @@
+[core]
+    remote = s3store
+['remote "s3store"']
+    url = s3://insurance-mlops-data-10056927/dvc-store
