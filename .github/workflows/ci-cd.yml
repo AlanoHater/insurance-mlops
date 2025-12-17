@@ -31,6 +31,7 @@ jobs:
     - name: 🤖 Entrenar Nuevo Modelo
       run: |
         # Esto generará un nuevo mlflow.db y mlruns/ en el servidor de GitHub
+        export PYTHONPATH=$PYTHONPATH:.
         python src/training/train.py
 
     - name: 🔄 Actualizar ID del Modelo en la API
