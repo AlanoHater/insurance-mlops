@@ -74,8 +74,10 @@ A. Autenticar Docker
 # Reemplaza 1234567890 con tu ID de cuenta si esta guía se usa en otro lugar
 AWS_ACCOUNT_ID=1234567890
 aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com
+```
 B. Descargar y Ejecutar la API
-Bash
+```bash
+
 
 IMAGE_URI=$AWS_ACCOUNT_[ID.dkr.ecr.us-east-1.amazonaws.com/insurance-api:latest](https://ID.dkr.ecr.us-east-1.amazonaws.com/insurance-api:latest)
 
