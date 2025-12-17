@@ -1,3 +1,5 @@
+import os
+import boto3
 import numpy as np
 import pandas as pd
 import xgboost as xgb
@@ -7,15 +9,48 @@ from sklearn.metrics import accuracy_score, roc_auc_score, f1_score
 from sklearn.model_selection import train_test_split
 from src.training.preprocess import load_data, clean_data, feature_engineering
 
+# --- CONFIGURACIÓN DE S3 (NUEVO) ---
+# Nombre de tu bucket real (sacado de tu imagen anterior)
+BUCKET_NAME = "insurance-mlops-data-10056927"
+DATA_KEY = "data/train.csv"
+LOCAL_DATA_PATH = "data/train.csv"
+
 # Configuración MLflow (Local en Docker)
 mlflow.set_tracking_uri("sqlite:///mlflow.db")
 mlflow.set_experiment("insurance-cross-selling-prod")
 
+def download_data_from_s3():
+    """Descarga los datos de S3 si no existen localmente."""
+    print("☁️ Verificando datos...")
+    
+    # Crear carpeta data si no existe
+    if not os.path.exists("data"):
+        os.makedirs("data")
+    
+    # Intentar descargar
+    try:
+        if not os.path.exists(LOCAL_DATA_PATH):
+            print(f"⬇️ Descargando desde s3://{BUCKET_NAME}/{DATA_KEY}...")
+            s3 = boto3.client('s3')
+            s3.download_file(BUCKET_NAME, DATA_KEY, LOCAL_DATA_PATH)
+            print("✅ Descarga completada.")
+        else:
+            print("✅ El archivo ya existe localmente, usando caché.")
+    except Exception as e:
+        print(f"❌ Error descargando de S3: {e}")
+        # No lanzamos error fatal aquí para permitir pruebas locales si el archivo ya existe,
+        # pero en CI/CD esto detendrá el script más adelante si load_data falla.
+
 def main():
+    # 1. Descargar Datos antes de empezar
+    download_data_from_s3()
+
     # ⚠️ CAMBIO IMPORTANTE: agregamos 'as run' para capturar el objeto
     with mlflow.start_run() as run:
         print("🚀 [1/5] Iniciando Ingesta y ETL...")
-        df = load_data("data/train.csv")
+        
+        # Ahora load_data funcionará porque el archivo acaba de ser descargado
+        df = load_data(LOCAL_DATA_PATH)
         df = clean_data(df)
         df = feature_engineering(df)
         
@@ -86,7 +121,6 @@ def main():
         print("💾 [5/5] Guardando Artefactos...")
         mlflow.xgboost.log_model(clf, "model", model_format="json")
         
-        # --- AQUÍ ESTABA EL CAMBIO NECESARIO ---
         # Capturamos el ID dentro del contexto seguro
         run_id = run.info.run_id
         print(f"✅ Modelo entrenado. Run ID: {run_id}")
