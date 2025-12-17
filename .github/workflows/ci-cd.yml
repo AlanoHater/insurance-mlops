@@ -17,7 +17,6 @@ jobs:
     - name: 📥 Descargar código
       uses: actions/checkout@v4
 
-    # --- NUEVO PASO CRÍTICO: Configurar AWS al principio ---
     - name: 🔐 Configurar Credenciales AWS
       uses: aws-actions/configure-aws-credentials@v4
       with:
@@ -36,16 +35,16 @@ jobs:
         pip install --upgrade pip
         pip install -r requirements.txt
 
-        - name: 🤖 Entrenar Nuevo Modelo
-        run: |
-          # --- LIMPIEZA CRÍTICA ---
-          # Borramos la DB y carpetas viejas para evitar conflictos de rutas (/workspaces vs /home/runner)
-          rm -f mlflow.db
-          rm -rf mlruns
-          
-          # Configuración normal
-          export PYTHONPATH=$PYTHONPATH:.
-          python src/training/train.py
+
+    - name: 🤖 Entrenar Nuevo Modelo
+      run: |
+        # --- LIMPIEZA CRÍTICA ---
+        rm -f mlflow.db
+        rm -rf mlruns
+        
+        # Configuración normal
+        export PYTHONPATH=$PYTHONPATH:.
+        python src/training/train.py
 
     - name: 🔄 Actualizar ID del Modelo en la API
       run: |
@@ -57,7 +56,6 @@ jobs:
     - name: 🔐 Login en AWS ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v2
-      # Ya no necesitamos pasar env vars aquí porque 'configure-aws-credentials' lo hizo globalmente arriba
 
     - name: 🐳 Construir y Subir Imagen Docker
       env:
